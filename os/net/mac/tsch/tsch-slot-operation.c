@@ -1705,13 +1705,18 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 
       /* Get a packet ready to be sent */
       current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor);
-      /* There is no packet to send, and this link does not have Rx flag. Instead of doing
-       * nothing, switch to the backup link (has Rx flag) if any. */
-      if(current_packet == NULL
-         && !(current_link->link_options & LINK_OPTION_RX)
-         && backup_link != NULL)
-      {
-        // skiped TX slot, so refresh it's backoff if one has blocked
+      uint8_t do_skip_best_link = 0;
+      if(current_packet == NULL && backup_link != NULL) {
+        /* There is no packet to send, and this link does not have Rx flag. Instead of doing
+         * nothing, switch to the backup link (has Rx flag) if any
+         * and if the current link cannot Rx or both links can Rx, but the backup link has priority. */
+        if(!(current_link->link_options & LINK_OPTION_RX)
+            || backup_link->slotframe_handle < current_link->slotframe_handle) {
+          do_skip_best_link = 1;
+        }
+      }
+
+      if(do_skip_best_link) {
         update_link_backoff(current_link);
 
         current_link = backup_link;

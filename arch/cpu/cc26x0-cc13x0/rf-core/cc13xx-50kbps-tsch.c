@@ -42,7 +42,7 @@
 #include "net/mac/tsch/tsch.h"
 
 #define CC13XX_TSCH_DEFAULT_TS_CCA                128
-#define CC13XX_TSCH_DEFAULT_TS_TX_OFFSET          2500
+#define CC13XX_TSCH_DEFAULT_TS_TX_OFFSET          3800
 #define CC13XX_TSCH_DEFAULT_TS_RX_OFFSET          (CC13XX_TSCH_DEFAULT_TS_TX_OFFSET - (TSCH_CONF_RX_WAIT / 2))
 #define CC13XX_TSCH_DEFAULT_TS_CCA_OFFSET         (CC13XX_TSCH_DEFAULT_TS_RX_OFFSET \
                                                     - CC13XX_TSCH_DEFAULT_TS_CCA \
