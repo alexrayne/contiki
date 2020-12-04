@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2004, Swedish Institute of Computer Science.
- * All rights reserved.
+ * Copyright (c) 2020, Institute of Electronics and Computer Science (EDI)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,63 +25,24 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This file is part of the Contiki operating system.
  *
- * Author: Adam Dunkels <adam@sics.se>
- *
+ * Author: Atis Elsts <atis.elsts@edi.lv>
  */
 
-#include <stdio.h>
-#include <dirent.h>
-#include <string.h>
+/* Logging */
+#define LOG_CONF_LEVEL_RPL                         LOG_LEVEL_INFO
+#define LOG_CONF_LEVEL_TCPIP                       LOG_LEVEL_WARN
+#define LOG_CONF_LEVEL_IPV6                        LOG_LEVEL_WARN
+#define LOG_CONF_LEVEL_6LOWPAN                     LOG_LEVEL_WARN
+#define LOG_CONF_LEVEL_MAC                         LOG_LEVEL_INFO
+#define TSCH_LOG_CONF_PER_SLOT                     0
 
-#define CFS_IMPL 1
-#include "cfs/cfs.h"
+/* Enable printing of packet counters */
+#define LINK_STATS_CONF_PACKET_COUNTERS          1
 
-struct cfs_posix_dir {
-  DIR *dirp;
-};
+/* Application settings */
+#define APP_SEND_INTERVAL_SEC 10
+#define APP_WARM_UP_PERIOD_SEC 120
 
-/*---------------------------------------------------------------------------*/
-int
-cfs_opendir(struct cfs_dir *p, const char *n)
-{
-  struct cfs_posix_dir *dir = (struct cfs_posix_dir *)p;
-
-  dir->dirp = opendir(n);
-  return dir->dirp == NULL;
-}
-/*---------------------------------------------------------------------------*/
-int
-cfs_readdir(struct cfs_dir *p, struct cfs_dirent *e)
-{
-  struct cfs_posix_dir *dir = (struct cfs_posix_dir *)p;
-  struct dirent *res;
-
-  if(dir->dirp == NULL) {
-    return -1;
-  }
-  res = readdir(dir->dirp);
-  if(res == NULL) {
-    return -1;
-  }
-  strncpy(e->name, res->d_name, sizeof(e->name) - 1);
-  e->name[sizeof(e->name) - 1] = '\0';
-#if defined(__APPLE2__) || defined(__CBM__)
-  e->size = res->d_blocks;
-#else /* __APPLE2__ || __CBM__ */
-  e->size = 0;
-#endif /* __APPLE2__ || __CBM__ */
-  return 0;
-}
-/*---------------------------------------------------------------------------*/
-void
-cfs_closedir(struct cfs_dir *p)
-{
-  struct cfs_posix_dir *dir = (struct cfs_posix_dir *)p;
-
-  if(dir->dirp != NULL) {
-    closedir(dir->dirp);
-  }
-}
-/*---------------------------------------------------------------------------*/
+#define SICSLOWPAN_CONF_FRAG 0 /* No fragmentation */
+#define UIP_CONF_BUFFER_SIZE 200
