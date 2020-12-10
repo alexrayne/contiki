@@ -44,6 +44,8 @@
 
 #include "net/linkaddr.h"
 #include <string.h>
+#include "sys/log.h"
+#include <net/uip-hton.h>
 
 linkaddr_t linkaddr_node_addr;
 #if LINKADDR_SIZE == 2
@@ -80,4 +82,40 @@ linkaddr_set_node_addr(linkaddr_t *t)
   linkaddr_copy(&linkaddr_node_addr, t);
 }
 /*---------------------------------------------------------------------------*/
+void
+log_lladdr(const linkaddr_t *lladdr)
+{
+  if(lladdr == NULL) {
+    LOG_OUTPUT("(NULL LL addr)");
+    return;
+  } else {
+    unsigned int i;
+    for(i = 0; i < LINKADDR_SIZE; i++) {
+      if(i > 0 && i % 2 == 0) {
+        LOG_OUTPUT(".");
+      }
+      LOG_OUTPUT("%02x", lladdr->u8[i]);
+    }
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
+log_lladdr_compact(const linkaddr_t *lladdr)
+{
+  if(lladdr == NULL || linkaddr_cmp(lladdr, &linkaddr_null)) {
+    LOG_OUTPUT("LL-NULL");
+  } else {
+#if BUILD_WITH_DEPLOYMENT
+    LOG_OUTPUT("LL-%04u", deployment_id_from_lladdr(lladdr));
+#else /* BUILD_WITH_DEPLOYMENT */
+#if LINKADDR_SIZE == 8
+    LOG_OUTPUT("LL-%04x", UIP_HTONS(lladdr->u16[LINKADDR_SIZE/2-1]));
+#elif LINKADDR_SIZE == 2
+    LOG_OUTPUT("LL-%04x", UIP_HTONS(lladdr->u16[0]));
+#endif
+#endif /* BUILD_WITH_DEPLOYMENT */
+  }
+}
+/*---------------------------------------------------------------------------*/
+
 /** @} */

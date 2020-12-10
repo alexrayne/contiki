@@ -227,3 +227,58 @@ uiplib_ipaddr_snprint(char *buf, size_t size, const uip_ipaddr_t *addr)
 /**
  * @}
  */
+
+
+
+//=============================================================================
+/**
+ * \addtogroup log
+ * @{
+ */
+#if NETSTACK_CONF_WITH_IPV6
+
+
+/*---------------------------------------------------------------------------*/
+void
+log_6addr(const uip_ipaddr_t *ipaddr)
+{
+  char buf[UIPLIB_IPV6_MAX_STR_LEN];
+  uiplib_ipaddr_snprint(buf, sizeof(buf), ipaddr);
+  LOG_OUTPUT("%s", buf);
+}
+/*---------------------------------------------------------------------------*/
+int
+log_6addr_compact_snprint(char *buf, size_t size, const uip_ipaddr_t *ipaddr)
+{
+  if(ipaddr == NULL) {
+    return snprintf(buf, size, "6A-NULL");
+  } else {
+    char *prefix = NULL;
+    if(uip_is_addr_mcast(ipaddr)) {
+      prefix = "6M";
+    } else if(uip_is_addr_linklocal(ipaddr)) {
+      prefix = "6L";
+    } else {
+      prefix = "6G";
+    }
+#if BUILD_WITH_DEPLOYMENT
+    return snprintf(buf, size, "%s-%03u", prefix, deployment_id_from_iid(ipaddr));
+#else /* BUILD_WITH_DEPLOYMENT */
+    return snprintf(buf, size, "%s-%04x", prefix, UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]));
+#endif /* BUILD_WITH_DEPLOYMENT */
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
+log_6addr_compact(const uip_ipaddr_t *ipaddr)
+{
+  char buf[8];
+  log_6addr_compact_snprint(buf, sizeof(buf), ipaddr);
+  LOG_OUTPUT("%s", buf);
+}
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+
+/*---------------------------------------------------------------------------*/
+/**
+ * @}
+ */

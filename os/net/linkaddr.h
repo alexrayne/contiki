@@ -37,6 +37,11 @@
  *         Adam Dunkels <adam@sics.se>
  */
 
+#ifndef LINKADDR_H_
+#define LINKADDR_H_
+
+#include "contiki.h"
+
 /**
  * \addtogroup link-layer
  * @{
@@ -49,11 +54,6 @@
  * The linkaddr module handles link-layer addresses.
  *
  */
-
-#ifndef LINKADDR_H_
-#define LINKADDR_H_
-
-#include "contiki.h"
 
 #ifdef LINKADDR_CONF_SIZE
 #define LINKADDR_SIZE LINKADDR_CONF_SIZE
@@ -139,6 +139,50 @@ extern linkaddr_t linkaddr_node_addr;
  */
 extern const linkaddr_t linkaddr_null;
 
+/** @} */
+/** @} */
+
+
+
+//==============================================================================
+//                  sys/log.h references
+//#include <sys/log.h>
+
+/** \addtogroup log
+ * @{ */
+
+/* Link-layer address */
+#define LOG_LLADDR(level, lladdr) do {  \
+                            if(level <= (LOG_LEVEL)) { \
+                              if(LOG_WITH_COMPACT_ADDR) { \
+                                log_lladdr_compact(lladdr); \
+                              } else { \
+                                log_lladdr(lladdr); \
+                              } \
+                            } \
+                        } while (0)
+
+#define LOG_PRINT_LLADDR(...)  LOG_LLADDR(0, __VA_ARGS__)
+#define LOG_ERR_LLADDR(...)    LOG_LLADDR(LOG_LEVEL_ERR, __VA_ARGS__)
+#define LOG_WARN_LLADDR(...)   LOG_LLADDR(LOG_LEVEL_WARN, __VA_ARGS__)
+#define LOG_INFO_LLADDR(...)   LOG_LLADDR(LOG_LEVEL_INFO, __VA_ARGS__)
+#define LOG_DBG_LLADDR(...)    LOG_LLADDR(LOG_LEVEL_DBG, __VA_ARGS__)
+
+
+/**
+ * Logs a link-layer address
+ * \param lladdr The link-layer address
+*/
+void log_lladdr(const linkaddr_t *lladdr);
+
+/**
+ * Logs a link-layer address with a compact format
+ * \param lladdr The link-layer address
+*/
+void log_lladdr_compact(const linkaddr_t *lladdr);
+
+/** @} */
+
+
+
 #endif /* LINKADDR_H_ */
-/** @} */
-/** @} */

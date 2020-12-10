@@ -680,4 +680,61 @@ typedef uip_eth_addr uip_lladdr_t;
 
 /**  @} */
 
+
+//==========================================================================
+//                  sys/log.h references
+//#include <sys/log.h>
+
+
+/**
+ * \addtogroup log
+ * @{
+ */
+
+/* IPv6 address */
+#define LOG_6ADDR(level, ipaddr) do {  \
+                           if(level <= (LOG_LEVEL)) { \
+                             if(LOG_WITH_COMPACT_ADDR) { \
+                               log_6addr_compact(ipaddr); \
+                             } else { \
+                               log_6addr(ipaddr); \
+                             } \
+                           } \
+                         } while (0)
+
+#define LOG_PRINT_6ADDR(...)   LOG_6ADDR(0, __VA_ARGS__)
+#define LOG_ERR_6ADDR(...)     LOG_6ADDR(LOG_LEVEL_ERR, __VA_ARGS__)
+#define LOG_WARN_6ADDR(...)    LOG_6ADDR(LOG_LEVEL_WARN, __VA_ARGS__)
+#define LOG_INFO_6ADDR(...)    LOG_6ADDR(LOG_LEVEL_INFO, __VA_ARGS__)
+#define LOG_DBG_6ADDR(...)     LOG_6ADDR(LOG_LEVEL_DBG, __VA_ARGS__)
+
+#if NETSTACK_CONF_WITH_IPV6
+
+/**
+ * Logs an IPv6 address
+ * \param ipaddr The IPv6 address
+*/
+void log_6addr(const uip_ipaddr_t *ipaddr);
+
+/**
+ * Logs an IPv6 address with a compact format
+ * \param ipaddr The IPv6 address
+*/
+void log_6addr_compact(const uip_ipaddr_t *ipaddr);
+
+/**
+ * Write at most size - 1 characters of the IP address to the output string,
+ * in a compact representation. The output is always null-terminated, unless
+ * size is 0.
+ *
+ * \param buf A pointer to an output string with at least size bytes.
+ * \param size The max number of characters to write to the output string.
+ * \param ipaddr A pointer to a uip_ipaddr_t that will be printed with printf().
+ */
+int log_6addr_compact_snprint(char *buf, size_t size, const uip_ipaddr_t *ipaddr);
+
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+
+/** @} */
+
 #endif /* OS_NET_IP_UIPADDR_H_ */
