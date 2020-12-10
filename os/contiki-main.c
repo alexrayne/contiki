@@ -122,7 +122,7 @@ main(void)
 
 #if NETSTACK_CONF_WITH_IPV6
   {
-    uip_ds6_addr_t *lladdr;
+    uip_ds6_addr_t *lladdr;     (void) lladdr;
     memcpy(&uip_lladdr.addr, &linkaddr_node_addr, sizeof(uip_lladdr.addr));
     process_start(&tcpip_process, NULL);
 

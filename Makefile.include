@@ -85,6 +85,7 @@ endif
 LDFLAGS_WERROR ?= -Wl,--fatal-warnings
 #CFLAGS_WERROR += -Wno-error=unused-const-variable
 CFLAGS_WERROR += -Wno-error=unused-function -Wno-error=unused-variable
+CFLAGS_WERROR += -Wno-error=unused-but-set-variable
 CFLAGS_WERROR += -Wno-error=array-bounds
 #some code use pragma "warning". this code warns anyway, but still need compiles
 CFLAGS += -Wno-error=unknown-pragmas
