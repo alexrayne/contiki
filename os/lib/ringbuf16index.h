@@ -41,6 +41,7 @@
 #define __RINGBUF16INDEX_H__
 
 #include "contiki-conf.h"
+#include <stdint.h>
 
 #if (PACKETBUF_CONF_ATTRS_INLINE) || defined(__GNUC__)
 #define LIB_INLINES     1
@@ -98,6 +99,20 @@ void ringbuf16index_putn(struct ringbuf16index *r, uint16_t size);
  * \retval -1 No element in the ring buffer
  */
 int ringbuf16index_get(struct ringbuf16index *r);
+
+/**
+ * \brief Check solid space size at get an element.
+ * \param r Pointer to ringbuf16index
+ * \retval size of solid space at get position, avail for read
+ */
+unsigned ringbuf16index_getn_avail(const struct ringbuf16index *r);
+
+/**
+ * \brief Get size elements from the ring buffer
+ * \param r Pointer to ringbuf16index
+ * \param size Amount of placed items
+ */
+void ringbuf16index_getn(struct ringbuf16index *r, uint16_t size);
 
 /**
  * \brief Return the index of the first element which will be removed if calling

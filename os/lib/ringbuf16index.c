@@ -80,7 +80,10 @@ ringbuf16index_put(struct ringbuf16index *r)
  */
 unsigned ringbuf16index_put_free(const struct ringbuf16index *r){
     if (r->put_ptr >= r->get_ptr){
-        return (r->mask+1 - r->put_ptr);
+        unsigned avail = r->mask;
+        if (r->get_ptr > 0)
+            ++avail;
+        return avail - r->put_ptr;
     }
     return (r->get_ptr-1 - r->put_ptr);
 }
@@ -146,6 +149,29 @@ ringbuf16index_peek_get(const struct ringbuf16index *r)
     return -1;
   }
 }
+
+/**
+ * \brief Check solid space size at get an element.
+ * \param r Pointer to ringbuf16index
+ * \retval size of solid space at get position, avail for read
+ */
+unsigned ringbuf16index_getn_avail(const struct ringbuf16index *r){
+    unsigned putat = r->put_ptr;
+    if (putat >= r->get_ptr){
+        return (putat - r->get_ptr);
+    }
+    return (r->mask+1 - r->get_ptr);
+}
+
+/**
+ * \brief Get size elements from the ring buffer
+ * \param r Pointer to ringbuf16index
+ * \param size Amount of placed items
+ */
+void ringbuf16index_getn(struct ringbuf16index *r, uint16_t size){
+    r->get_ptr = (r->get_ptr + size) & r->mask;
+}
+
 /* Return the number of elements currently in the ring buffer */
 int
 ringbuf16index_elements(const struct ringbuf16index *r)
