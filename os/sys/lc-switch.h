@@ -66,7 +66,19 @@ typedef unsigned short lc_t;
 
 #define LC_RESUME(s) switch(s) { case 0:
 
-#define LC_SET(s) s = __LINE__; case __LINE__:
+#if defined(__cplusplus) && defined(__has_cpp_attribute)
+    #if __has_cpp_attribute(fallthrough)
+        #define LC_FALLTHROUGH [[fallthrough]]
+    #else
+        #define LC_FALLTHROUGH
+    #endif
+#elif __GNUC__
+    #define LC_FALLTHROUGH  __attribute__ ((fallthrough))
+#else
+    #define LC_FALLTHROUGH
+#endif
+
+#define LC_SET(s) s = __LINE__; LC_FALLTHROUGH; case __LINE__:
 
 #define LC_END(s) }
 

@@ -52,11 +52,12 @@ int strncmp(const char *s1, const char *s2, int len);
 unsigned char
 strncasecmp(const char *s1, const char *s2, unsigned char n)
 {
-  unsigned char len;
 
   return strncmp(s1, s2, n);
   
-  /*  len = MAX_STRLEN;
+  /*
+  unsigned char len;
+  len = MAX_STRLEN;
   if(n < MAX_STRLEN) {
     len = n;
   }

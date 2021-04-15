@@ -38,7 +38,7 @@
 
 #include "lib/sensors.h"
 
-const extern struct sensors_sensor *sensors[];
+extern const struct sensors_sensor *sensors[];
 extern unsigned char sensors_flags[];
 
 #define FLAG_CHANGED    0x80
