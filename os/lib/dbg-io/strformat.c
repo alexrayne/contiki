@@ -643,13 +643,13 @@ format_str_v(const strformat_context_t *ctxt, const char *format, va_list ap)
       const char *str = va_arg(ap, const char *);
 
       if(str) {
-        const char *pos = str;
+        const char *ps = str;
         const char *limit = NULL;
         if ( precision >= 0 )
-            limit = pos + precision;
-        while( (*pos != '\0') && (pos != limit) )
-            pos++;
-        len = pos - str;
+            limit = ps + precision;
+        while( (*ps != '\0') && (ps != limit) )
+            ps++;
+        len = ps - str;
       } else {
         str = "(null)";
         len = 6;
@@ -753,7 +753,7 @@ format_str_v(const strformat_context_t *ctxt, const char *format, va_list ap)
     break;
     case CONV_CHAR:
     {
-      char ch = va_arg(ap, int);
+      char carg = va_arg(ap, int);
       unsigned int field_fill = (minwidth > 1) ? minwidth - 1 : 0;
 
       if((flags & JUSTIFY_MASK) == JUSTIFY_RIGHT) {
@@ -761,7 +761,7 @@ format_str_v(const strformat_context_t *ctxt, const char *format, va_list ap)
         written += field_fill;
       }
 
-      CHECKCB(ctxt->write_str(ctxt->user_data, &ch, 1));
+      CHECKCB(ctxt->write_str(ctxt->user_data, &carg, 1));
       written++;
 
       if((flags & JUSTIFY_MASK) == JUSTIFY_LEFT) {

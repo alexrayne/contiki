@@ -32,7 +32,7 @@
 #include "contiki.h"
 
 #include <stdio.h>
-#include <strformat.h>
+#include "strformat.h"
 #include <string.h>
 /*---------------------------------------------------------------------------*/
 struct fmt_buffer {
