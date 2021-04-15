@@ -393,6 +393,10 @@ endif
 
 endif
 
+CXXFLAGS = $(subst -std=c99,-std=gnu++11,$(CFLAGS))
+CXXFLAGS += -fpermissive -fno-exceptions -fno-unwind-tables
+CXXFLAGS += -fno-threadsafe-statics -fno-rtti -fno-use-cxa-atexit
+
 ### Verbosity control. Use  make V=1  to get verbose builds.
 
 ifeq ($(V),1)
@@ -438,6 +442,7 @@ $(info external dirs:$(EXTERNALDIRS) )
 SOURCEDIRS += . $(PROJECTDIRS) $(CONTIKI_TARGET_DIRS_CONCAT) \
              $(CONTIKI_CPU_DIRS_CONCAT) $(MODULEDIRS) $(EXTERNALDIRS) $(APPDS)
 
+vpath %.cpp $(SOURCEDIRS)
 
 
 vpath %.c $(abspath $(SOURCEDIRS))
@@ -555,6 +560,13 @@ $(OBJECTDIR)/%.o: %.cpp | $(OBJECTDIR)
 	@${DUMP_GCCCPP}
 endif
 
+ifndef CUSTOM_RULE_CPP_TO_OBJECTDIR_O
+$(OBJECTDIR)/%.o: %.cpp | $(OBJECTDIR)
+	$(TRACE_CXX)
+	$(Q)$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+	@$(FINALIZE_DEPENDENCY)
+endif
+
 ifndef CUSTOM_RULE_S_TO_OBJECTDIR_O
 $(OBJECTDIR)/%.o: %.S | $(OBJECTDIR)
 	$(TRACE_AS)
@@ -574,10 +586,22 @@ $(OBJECTDIR)/%.s: %.c | $(OBJECTDIR)
 	@${DUMP_GCCCPP}
 endif
 
+ifndef CUSTOM_RULE_CPP_TO_OBJECTDIR_S
+$(OBJECTDIR)/%.s: %.cpp | $(OBJECTDIR)
+	$(TRACE_CXX)
+	$(Q)$(CXX) $(CXXFLAGS) -S $< -o $@
+endif
+
 ifndef CUSTOM_RULE_C_TO_OBJECTDIR_E
 $(OBJECTDIR)/%.e: %.c | $(OBJECTDIR)
 	$(TRACE_CC)
 	$(Q)$(CC) $(CFLAGS) -E $< -o $@
+endif
+
+ifndef CUSTOM_RULE_CPP_TO_OBJECTDIR_E
+$(OBJECTDIR)/%.e: %.cpp | $(OBJECTDIR)
+	$(TRACE_CXX)
+	$(Q)$(CXX) $(CXXFLAGS) -E $< -o $@
 endif
 
 ifndef CUSTOM_RULE_C_TO_O
@@ -590,6 +614,12 @@ ifndef CUSTOM_RULE_C_TO_O
 	$(TRACE_CCX)
 	$(Q)$(CCX) $(CPPFLAGS) -c $< -o $@
 	@${DUMP_GCCCPP}
+endif
+
+ifndef CUSTOM_RULE_CPP_TO_O
+%.o: %.cpp
+	$(TRACE_CXX)
+	$(Q)$(CXX) $(CXXFLAGS) -c $< -o $@
 endif
 
 ifndef CUSTOM_RULE_C_TO_S
@@ -606,6 +636,12 @@ ifndef CUSTOM_RULE_C_TO_E
 $(BUILD_DIR)/%.co: %.cpp | $(BUILD_DIR) $(BUILD_DIR_BOARD)
 	$(TRACE_CCX)
 	$(Q)$(CCX) $(CPPFLAGS) -DAUTOSTART_ENABLE -c $< -o $@
+endif
+
+ifndef CUSTOM_RULE_CPP_TO_E
+%.e: %.cpp
+	$(TRACE_CXX)
+	$(Q)$(CXX) $(CXXFLAGS) -E $< -o $@
 endif
 
 ifndef AROPTS
