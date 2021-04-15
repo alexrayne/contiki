@@ -133,6 +133,8 @@ extern struct log_module all_modules[];
 #define LOG_LEVEL_MAIN                        MIN((LOG_CONF_LEVEL_MAIN), curr_log_level_main)
 
 /* Main log function */
+#define LOG_MODULE_LOCAL(name) static const char* LOG_MODULE = name
+
 
 #define LOG(newline, level, levelstr, levelcolor, ...) do {  \
                             if(level <= (LOG_LEVEL)) { \
@@ -173,18 +175,21 @@ extern struct log_module all_modules[];
 #define LOG_WARN(...)          LOG(1, LOG_LEVEL_WARN, "WARN", LOG_COLOR_WARN, __VA_ARGS__)
 #define LOG_INFO(...)          LOG(1, LOG_LEVEL_INFO, "INFO", LOG_COLOR_INFO, __VA_ARGS__)
 #define LOG_DBG(...)           LOG(1, LOG_LEVEL_DBG, "DBG", LOG_COLOR_DBG, __VA_ARGS__)
+#define LOG_TRACE(...)         LOG(1, LOG_LEVEL_TRACE, "TRAC", LOG_COLOR_DBG, __VA_ARGS__)
 
 #define LOG_PRINT_(...)         LOG(0, 0, "PRI", LOG_COLOR_PRI, __VA_ARGS__)
 #define LOG_ERR_(...)           LOG(0, LOG_LEVEL_ERR, "ERR", LOG_COLOR_ERR, __VA_ARGS__)
 #define LOG_WARN_(...)          LOG(0, LOG_LEVEL_WARN, "WARN", LOG_COLOR_WARN, __VA_ARGS__)
 #define LOG_INFO_(...)          LOG(0, LOG_LEVEL_INFO, "INFO", LOG_COLOR_INFO, __VA_ARGS__)
 #define LOG_DBG_(...)           LOG(0, LOG_LEVEL_DBG, "DBG", LOG_COLOR_DBG, __VA_ARGS__)
+#define LOG_TRACE_(...)         LOG(0, LOG_LEVEL_TRACE, "TRAC", LOG_COLOR_DBG, __VA_ARGS__)
 
 #define LOG_PRINT_BYTES(data, length)   LOG_BYTES(0, data, length)
 #define LOG_ERR_BYTES(data, length)     LOG_BYTES(LOG_LEVEL_ERR, data, length)
 #define LOG_WARN_BYTES(data, length)    LOG_BYTES(LOG_LEVEL_WARN, data, length)
 #define LOG_INFO_BYTES(data, length)    LOG_BYTES(LOG_LEVEL_INFO, data, length)
 #define LOG_DBG_BYTES(data, length)     LOG_BYTES(LOG_LEVEL_DBG, data, length)
+#define LOG_TRACE_BYTES(data, length)   LOG_BYTES(LOG_LEVEL_TRACE, data, length)
 
 /* For checking log level.
    As this builds on curr_log_level variables, this should not be used
@@ -196,6 +201,7 @@ extern struct log_module all_modules[];
 #define LOG_WARN_ENABLED       ((LOG_LEVEL) >= LOG_LEVEL_WARN)
 #define LOG_INFO_ENABLED       ((LOG_LEVEL) >= LOG_LEVEL_INFO)
 #define LOG_DBG_ENABLED        ((LOG_LEVEL) >= LOG_LEVEL_DBG)
+#define LOG_TRACE_ENABLED      ((LOG_LEVEL) >= LOG_LEVEL_TRACE)
 
 /**
  * Logs a byte array as hex characters

@@ -50,6 +50,7 @@
 
 #include <contiki.h>
 #include "sys/log.h"
+// import strcmp
 #include <string.h>
 //#include "deployment/deployment.h"
 
