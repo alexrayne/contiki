@@ -54,7 +54,6 @@
 #define RTIMER_H_
 
 #include "contiki.h"
-#include "dev/watchdog.h"
 #include <stdbool.h>
 
 /*---------------------------------------------------------------------------*/
@@ -89,7 +88,7 @@ typedef uint64_t rtimer_clock_t;
 #define RTIMER_CLOCK_MAX           ((rtimer_clock_t)-1)
 #define RTIMER_CLOCK_LT(a, b)      (RTIMER_CLOCK_DIFF((a),(b)) < 0)
 
-#include "rtimer-arch.h"
+#include <rtimer-arch.h>
 
 
 /*
@@ -223,6 +222,11 @@ rtimer_error rtimer_cancel(struct rtimer *rtimer);
  * \hideinitializer
  */
 #define RTIMER_NOW() rtimer_arch_now()
+
+#ifndef RTIMER64_NOW
+#define RTIMER64_NOW() RTIMER_NOW()
+#endif
+
 
 #define RTIME_EXPIRED( t ) (RTIMER_CLOCK_LT(t, RTIMER_NOW()))
 // \return 1(true) - when expired
