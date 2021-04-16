@@ -41,16 +41,22 @@
    compares them with strcasecmp.
 */
 
+/// provide: size_t
+#include <strings.h>
+
+// some libc not provides strncmp
+int strncmp(const char *s1, const char *s2, size_t len);
+
+
+
 #define MAX_STRLEN 40
 
 
-int strncmp(const char *s1, const char *s2, int len);
 
 /*static char buf1[MAX_STRLEN],
   buf2[MAX_STRLEN];*/
 /*-----------------------------------------------------------------------------------*/
-unsigned char
-strncasecmp(const char *s1, const char *s2, unsigned char n)
+int strncasecmp(const char *s1, const char *s2, size_t n)
 {
 
   return strncmp(s1, s2, n);
