@@ -27,6 +27,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/**
+ * DEPRECATED: this is legacy header. ContikiNG use int-master.h
+ * */
 /*---------------------------------------------------------------------------*/
 #ifndef _ISR_CONTROL_H_
 #define _ISR_CONTROL_H_
@@ -35,18 +38,21 @@
  * Includes
  */
 #include "cc.h"
-#include "isr-control-arch.h"
+#include "int-master.h"
 /*---------------------------------------------------------------------------*/
+typedef  int_master_status_t  isr_state_t;
+
 /**
  * \brief Disables all interrupts
  *
  * \return The global variable state that was found on calling
  */
-static CC_INLINE isr_state_t atomic_section_enter(void);
+#define atomic_section_enter()  int_master_read_and_disable()
+
 /**
  * \brief Restores interrupt state based on output of atomic_section_enter
  * \param state the return from the previous atomic_section_enter
  */
-static CC_INLINE void atomic_section_exit(isr_state_t state);
+#define atomic_section_exit(state) int_master_status_set(state)
 /*---------------------------------------------------------------------------*/
 #endif /* _ISR_CONTROL_H_ */
