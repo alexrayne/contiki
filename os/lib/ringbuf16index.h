@@ -54,6 +54,7 @@ struct ringbuf16index {
   /* These must be 8-bit quantities to avoid race conditions. */
   uint16_t put_ptr, get_ptr;
 };
+typedef struct ringbuf16index ringbuf16index;
 
 /**
  * \brief Initialize a ring buffer. The size must be a power of two
