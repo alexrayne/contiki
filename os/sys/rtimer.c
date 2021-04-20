@@ -62,7 +62,7 @@ static struct rtimer *volatile next_rtimer;
 /*--------------------------MULTIPLE ACCESS RTIMER---------------------------*/
 /*---------------------------------------------------------------------------*/
 #if RTIMER_MULTIPLE_ACCESS
-#include "sys/isr-control.h"
+#include "sys/critical.h"
 /*---------------------------------------------------------------------------*/
 static void
 schedule_rtimer_isr_safe(struct rtimer *rtimer)
@@ -85,7 +85,7 @@ add_to_queue(struct rtimer *rtimer, rtimer_clock_t time,
   int ret = RTIMER_OK;
   struct rtimer *iter;
 
-  isr_state_t state = atomic_section_enter();
+  int_master_status_t state = critical_enter();
 
   if(rtimer->state != RTIMER_READY) {
     ret = RTIMER_ERR_ALREADY_SCHEDULED;
@@ -118,7 +118,7 @@ add_to_queue(struct rtimer *rtimer, rtimer_clock_t time,
   rtimer->state = RTIMER_QUEUED;
 
 finish:
-  atomic_section_exit(state);
+  critical_exit(state);
 
   return ret;
 }
@@ -129,7 +129,7 @@ remove_from_queue(struct rtimer *rtimer)
   int ret = RTIMER_OK;
   struct rtimer *iter;
 
-  isr_state_t state = atomic_section_enter();
+  int_master_status_t state = critical_enter();
 
   if(rtimer->state == RTIMER_READY) {
     ret = RTIMER_ERR_NOT_SCHEDULED;
@@ -152,7 +152,7 @@ remove_from_queue(struct rtimer *rtimer)
 
   rtimer->state = RTIMER_READY;
 
-  atomic_section_exit(state);
+  critical_exit(state);
 
   return ret;
 }
@@ -160,16 +160,17 @@ remove_from_queue(struct rtimer *rtimer)
 static struct rtimer *
 pop_expired_from_queue(void)
 {
-  isr_state_t state;
+  int_master_status_t state;
   rtimer_clock_t now;
 
   struct rtimer *last = NULL;
   struct rtimer *ret = NULL;
   struct rtimer *iter;
 
-  state = atomic_section_enter();
+  state = critical_enter();
 
-  now = RTIMER_NOW();
+  // exec timers before guarded time, as immidiate scheduled
+  now = RTIMER_NOW() + RTIMER_GUARD_TIME;
 
   iter = next_rtimer;
 
@@ -191,7 +192,7 @@ pop_expired_from_queue(void)
     schedule_rtimer_isr_safe(next_rtimer);
   }
 
-  atomic_section_exit(state);
+  critical_exit(state);
 
   return ret;
 }
@@ -309,6 +310,7 @@ rtimer_error
 rtimer_set(struct rtimer *rtimer, rtimer_clock_t time,
            rtimer_clock_t duration, rtimer_callback_t func, void *ptr)
 {
+  (void)duration;
   PRINTF("rtimer_set time %lu\n", time);
   if(RTIMER_MULTIPLE_ACCESS) {
     return add_to_queue(rtimer, time, func, ptr);
