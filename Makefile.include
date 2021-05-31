@@ -375,7 +375,6 @@ MODULES_INCLUDED_SECOND_PASS := $(filter-out $(MODULES_INCLUDED_FIRST_PASS) \
                                              , $(MODULES_INCLUDES) )
 include $(MODULES_INCLUDED_SECOND_PASS)
 $(info modules 2nd pass  $(MODULES_INCLUDED_SECOND_PASS) )
-include $(CONTIKI)/Makefile.modules_inspect
 
 # Iterate once more: include the modules added from the previous include.
 # Only works with one level of nested module inclusion.
