@@ -525,7 +525,10 @@ int process_run(void);
  * \retval Non-zero if the process is running.
  * \retval Zero if the process is not running.
  */
-int process_is_running(struct process *p);
+static inline
+int process_is_running(struct process *p){
+    return p->state != 0; //PROCESS_STATE_NONE;
+}
 
 /**
  *  Number of events waiting to be processed.
