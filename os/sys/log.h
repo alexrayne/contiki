@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017, Inria.
+ * Copyright (c) 2021, alexrayne <alexraynepe196@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +62,6 @@
 #define LOG_LEVEL_WARN         2 /* Warnings */
 #define LOG_LEVEL_INFO         3 /* Basic info */
 #define LOG_LEVEL_DBG          4 /* Detailled debug */
-#define LOG_LEVEL_TRACE        5 /* More Detailled debug */
 
 /* Log coloring */
 #define TC_RESET   "\033[0m"
@@ -133,8 +133,49 @@ extern struct log_module all_modules[];
 #define LOG_LEVEL_MAIN                        MIN((LOG_CONF_LEVEL_MAIN), curr_log_level_main)
 
 /* Main log function */
-#define LOG_MODULE_LOCAL(name) static const char* LOG_MODULE = name
 
+#if LOG_WITH_MODULE_PREFIX||LOG_WITH_LOC||LOG_WITH_COLOR
+
+void log_prefix_line( char level
+#   if LOG_WITH_MODULE_PREFIX
+                , const char* module_name
+#   endif
+#   if LOG_WITH_LOC
+                , const char* file_name, unsigned line
+#   endif
+        );
+
+#   if LOG_WITH_MODULE_PREFIX
+#   define  LOG_NEW_LINE_ARG_MODULE  , LOG_MODULE
+#   else
+#   define  LOG_NEW_LINE_ARG_MODULE
+#   endif
+
+#   if LOG_WITH_LOC
+#   define  LOG_NEW_LINE_ARG_LOC  , __FILE__, __LINE__
+#   else
+#   define  LOG_NEW_LINE_ARG_LOC
+#   endif
+
+#define LOG_NEW_LINE_ARGS(level) level LOG_NEW_LINE_ARG_MODULE LOG_NEW_LINE_ARG_LOC
+
+// buildup call to log_prefix_line
+#define LOG_NEW_LINE(level) log_prefix_line( LOG_NEW_LINE_ARGS(level) )
+
+#else
+#define LOG_NEW_LINE(level)
+#endif
+
+
+#define __LOG(newline, level, ...) do {  \
+                            if(level <= (LOG_LEVEL)) { \
+                              if(newline) LOG_NEW_LINE(level);\
+                              LOG_OUTPUT(__VA_ARGS__); \
+                            } \
+                          } while (0)
+
+
+#define _LOG(newline, level, levelstr, levelcolor, ...) __LOG(newline, level, __VA_ARGS__)
 
 #define LOG(newline, level, levelstr, levelcolor, ...) do {  \
                             if(level <= (LOG_LEVEL)) { \
@@ -170,26 +211,26 @@ extern struct log_module all_modules[];
                          } while (0)
 
 /* More compact versions of LOG macros */
-#define LOG_PRINT(...)         LOG(1, 0, "PRI", LOG_COLOR_PRI, __VA_ARGS__)
-#define LOG_ERR(...)           LOG(1, LOG_LEVEL_ERR, "ERR", LOG_COLOR_ERR, __VA_ARGS__)
-#define LOG_WARN(...)          LOG(1, LOG_LEVEL_WARN, "WARN", LOG_COLOR_WARN, __VA_ARGS__)
-#define LOG_INFO(...)          LOG(1, LOG_LEVEL_INFO, "INFO", LOG_COLOR_INFO, __VA_ARGS__)
-#define LOG_DBG(...)           LOG(1, LOG_LEVEL_DBG, "DBG", LOG_COLOR_DBG, __VA_ARGS__)
-#define LOG_TRACE(...)         LOG(1, LOG_LEVEL_TRACE, "TRAC", LOG_COLOR_DBG, __VA_ARGS__)
+#define LOG_PRINT(...)         _LOG(1, 0, "PRI", LOG_COLOR_PRI, __VA_ARGS__)
+#define LOG_ERR(...)           _LOG(1, LOG_LEVEL_ERR, "ERR", LOG_COLOR_ERR, __VA_ARGS__)
+#define LOG_WARN(...)          _LOG(1, LOG_LEVEL_WARN, "WARN", LOG_COLOR_WARN, __VA_ARGS__)
+#define LOG_INFO(...)          _LOG(1, LOG_LEVEL_INFO, "INFO", LOG_COLOR_INFO, __VA_ARGS__)
+#define LOG_DBG(...)           _LOG(1, LOG_LEVEL_DBG, "DBG", LOG_COLOR_DBG, __VA_ARGS__)
 
-#define LOG_PRINT_(...)         LOG(0, 0, "PRI", LOG_COLOR_PRI, __VA_ARGS__)
-#define LOG_ERR_(...)           LOG(0, LOG_LEVEL_ERR, "ERR", LOG_COLOR_ERR, __VA_ARGS__)
-#define LOG_WARN_(...)          LOG(0, LOG_LEVEL_WARN, "WARN", LOG_COLOR_WARN, __VA_ARGS__)
-#define LOG_INFO_(...)          LOG(0, LOG_LEVEL_INFO, "INFO", LOG_COLOR_INFO, __VA_ARGS__)
-#define LOG_DBG_(...)           LOG(0, LOG_LEVEL_DBG, "DBG", LOG_COLOR_DBG, __VA_ARGS__)
-#define LOG_TRACE_(...)         LOG(0, LOG_LEVEL_TRACE, "TRAC", LOG_COLOR_DBG, __VA_ARGS__)
+#define LOG_INFO_ERR(cond, ...)    __LOG(1, (cond)? LOG_LEVEL_INFO:LOG_LEVEL_ERR , __VA_ARGS__)
+#define LOG_DBG_ERR(cond, ...)     __LOG(1, (cond)? LOG_LEVEL_DBG:LOG_LEVEL_ERR , __VA_ARGS__)
+
+#define LOG_PRINT_(...)         _LOG(0, 0, "PRI", LOG_COLOR_PRI, __VA_ARGS__)
+#define LOG_ERR_(...)           _LOG(0, LOG_LEVEL_ERR, "ERR", LOG_COLOR_ERR, __VA_ARGS__)
+#define LOG_WARN_(...)          _LOG(0, LOG_LEVEL_WARN, "WARN", LOG_COLOR_WARN, __VA_ARGS__)
+#define LOG_INFO_(...)          _LOG(0, LOG_LEVEL_INFO, "INFO", LOG_COLOR_INFO, __VA_ARGS__)
+#define LOG_DBG_(...)           _LOG(0, LOG_LEVEL_DBG, "DBG", LOG_COLOR_DBG, __VA_ARGS__)
 
 #define LOG_PRINT_BYTES(data, length)   LOG_BYTES(0, data, length)
 #define LOG_ERR_BYTES(data, length)     LOG_BYTES(LOG_LEVEL_ERR, data, length)
 #define LOG_WARN_BYTES(data, length)    LOG_BYTES(LOG_LEVEL_WARN, data, length)
 #define LOG_INFO_BYTES(data, length)    LOG_BYTES(LOG_LEVEL_INFO, data, length)
 #define LOG_DBG_BYTES(data, length)     LOG_BYTES(LOG_LEVEL_DBG, data, length)
-#define LOG_TRACE_BYTES(data, length)   LOG_BYTES(LOG_LEVEL_TRACE, data, length)
 
 /* For checking log level.
    As this builds on curr_log_level variables, this should not be used
@@ -201,7 +242,6 @@ extern struct log_module all_modules[];
 #define LOG_WARN_ENABLED       ((LOG_LEVEL) >= LOG_LEVEL_WARN)
 #define LOG_INFO_ENABLED       ((LOG_LEVEL) >= LOG_LEVEL_INFO)
 #define LOG_DBG_ENABLED        ((LOG_LEVEL) >= LOG_LEVEL_DBG)
-#define LOG_TRACE_ENABLED      ((LOG_LEVEL) >= LOG_LEVEL_TRACE)
 
 /**
  * Logs a byte array as hex characters
@@ -232,6 +272,31 @@ int log_get_level(const char *module);
  * \return The textual description
 */
 const char *log_level_to_str(int level);
+
+
+
+/// @ brief it is a part of <https://osdn.net/projects/mcuhal-arm/> :contiki log system
+#ifndef LOG_MODULE_NAME
+#define LOG_MODULE_NAME(name) static const char* LOG_MODULE = name
+#define LOG_MODULE_LOCAL(name) LOG_MODULE_NAME(name)
+#endif
+
+
+
+/// @ brief it is a part of <https://osdn.net/projects/mcuhal-arm/> :contiki log system
+#ifndef LOG_LEVEL_TRACE
+#define LOG_LEVEL_TRACE        5 /* More Detailled debug */
+
+#define LOG_TRACE(...)          _LOG(1, LOG_LEVEL_TRACE, "TRAC", LOG_COLOR_TRACE, __VA_ARGS__)
+#define LOG_TRACE_(...)         _LOG(0, LOG_LEVEL_TRACE, "TRAC", LOG_COLOR_TRACE, __VA_ARGS__)
+#define LOG_TRACE_BYTES(data, length)   LOG_BYTES(LOG_LEVEL_TRACE, data, length)
+#define LOG_TRACE_ENABLED      ((LOG_LEVEL) >= LOG_LEVEL_TRACE)
+#ifndef LOG_COLOR_TRACE
+#define LOG_COLOR_TRACE         TC_WHITE
+#endif
+#endif
+
+
 
 #endif /* __LOG_H__ */
 

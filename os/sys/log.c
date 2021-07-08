@@ -84,6 +84,59 @@ struct log_module all_modules[] = {
 };
 
 /*---------------------------------------------------------------------------*/
+
+#if __STDC_VERSION__ >= 199901L
+// C99 designaed initalisers supports
+#define at_idx(i) [i] =
+#else
+#define at_idx(i)
+#endif
+static const char* level_colors[] = {
+     at_idx(LOG_LEVEL_NONE)     LOG_COLOR_PRI ,
+     at_idx(LOG_LEVEL_ERR)      LOG_COLOR_ERR ,
+     at_idx(LOG_LEVEL_WARN)     LOG_COLOR_WARN ,
+     at_idx(LOG_LEVEL_INFO)     LOG_COLOR_INFO ,
+     at_idx(LOG_LEVEL_DBG)      LOG_COLOR_DBG ,
+     at_idx(LOG_LEVEL_TRACE)    LOG_COLOR_TRACE ,
+};
+
+static const char* level_strs[] = {
+    at_idx(LOG_LEVEL_NONE)     "PRI" ,
+    at_idx(LOG_LEVEL_ERR)      "ERR" ,
+    at_idx(LOG_LEVEL_WARN)     "WARN" ,
+    at_idx(LOG_LEVEL_INFO)     "INFO" ,
+    at_idx(LOG_LEVEL_DBG)      "DBG" ,
+    at_idx(LOG_LEVEL_TRACE)    "TRC" ,
+};
+
+void log_prefix_line( char level
+#   if LOG_WITH_MODULE_PREFIX
+                , const char* module_name
+#   endif
+#   if LOG_WITH_LOC
+                , const char* file_name, unsigned line
+#   endif
+        )
+{
+    (void)level_colors;
+#if (LOG_WITH_COLOR)
+    if (level > 0)
+      LOG_OUTPUT(level_colors[level]);
+#endif
+#if (LOG_WITH_MODULE_PREFIX)
+    if (level > 0)
+      LOG_OUTPUT_PREFIX(level, level_strs[(unsigned)level], module_name);
+#endif
+#if (LOG_WITH_LOC)
+      LOG_OUTPUT("[%s: %d] ", file_name, line);
+#endif
+#if (LOG_WITH_COLOR)
+      LOG_OUTPUT(LOG_COLOR_RESET);
+#endif
+}
+
+
+/*---------------------------------------------------------------------------*/
 void
 log_bytes(const void *data, size_t length)
 {
