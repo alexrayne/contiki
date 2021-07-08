@@ -72,10 +72,12 @@ typedef unsigned short lc_t;
     #else
         #define LC_FALLTHROUGH
     #endif
-#elif __GNUC__
+#elif (__GNUC__ >= 7) && !defined(ECLIPSE)
+    // eclipse generates warnigs and macro invalid sintax here via internal bugs
+    // define -DECLIPSE at preprocessor provider
     #define LC_FALLTHROUGH  __attribute__ ((fallthrough))
 #else
-    #define LC_FALLTHROUGH
+    #define LC_FALLTHROUGH  /* fallthrough */
 #endif
 
 #define LC_SET(s) s = __LINE__; LC_FALLTHROUGH; case __LINE__:
