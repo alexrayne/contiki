@@ -525,6 +525,35 @@ extern struct process *process_list;
 
 #define PROCESS_LIST() process_list
 
+
+
+/**
+ * \name Process internals API for alternative processing manage
+ * @{
+ */
+
+/**
+ * Process events que access.
+ */
+
+struct process_event_item {
+    process_event_t ev;
+    process_data_t data;
+    struct process *p;
+};
+
+struct process_event_item* process_get_event(void);
+
+
+void process_run_call(struct process *p, process_event_t ev, process_data_t data);
+void process_run_poll(struct process *p);
+
+extern volatile unsigned char process_poll_requested;
+
+/** @} */
+
+
+
 #endif /* PROCESS_H_ */
 
 /** @} */

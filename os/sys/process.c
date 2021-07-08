@@ -59,26 +59,28 @@ static process_event_t lastevent;
 /*
  * Structure used for keeping the queue of active events.
  */
-struct event_data {
-  process_event_t ev;
-  process_data_t data;
-  struct process *p;
-};
+typedef struct process_event_item  event_data;
 
-static process_num_events_t nevents, fevent;
-static struct event_data events[PROCESS_CONF_NUMEVENTS];
-
-#if PROCESS_CONF_STATS
+#if !PROCESS_CONF_STATS
+#define STATIC_OPEN static
+#else
+#define STATIC_OPEN
 process_num_events_t process_maxevents;
 #endif
 
-static volatile unsigned char poll_requested;
+STATIC_OPEN
+process_num_events_t nevents, fevent;
+STATIC_OPEN
+event_data      events[PROCESS_CONF_NUMEVENTS];
+
+volatile unsigned char process_poll_requested;
+#define poll_requested  process_poll_requested
 
 #define PROCESS_STATE_NONE        0
 #define PROCESS_STATE_RUNNING     1
 #define PROCESS_STATE_CALLED      2
 
-static void call_process(struct process *p, process_event_t ev, process_data_t data);
+#define call_process(...)   process_run_call(__VA_ARGS__)
 
 #define DEBUG 0
 #if DEBUG
@@ -171,8 +173,7 @@ exit_process(struct process *p, struct process *fromprocess)
   process_current = old_current;
 }
 /*---------------------------------------------------------------------------*/
-static void
-call_process(struct process *p, process_event_t ev, process_data_t data)
+void process_run_call(struct process *p, process_event_t ev, process_data_t data)
 {
   int ret;
 
@@ -236,20 +237,40 @@ do_poll(void)
     }
   }
 }
+
+
+void process_run_poll(struct process *p){
+    p->state = PROCESS_STATE_RUNNING;
+    p->needspoll = 0;
+    call_process(p, PROCESS_EVENT_POLL, NULL);
+}
+
 /*---------------------------------------------------------------------------*/
 /*
  * Process the next event in the event queue and deliver it to
  * listening processes.
  */
 /*---------------------------------------------------------------------------*/
+struct process_event_item* process_get_event(void){
+    if(nevents > 0){
+
+        struct process_event_item* ev = events  + fevent;
+
+        /* Since we have seen the new event, we move pointer upwards
+           and decrease the number of events. */
+        fevent = (fevent + 1) % PROCESS_CONF_NUMEVENTS;
+        --nevents;
+
+        return ev;
+    }
+    else
+        return NULL;
+}
+
+
 static void
 do_event(void)
 {
-  process_event_t ev;
-  process_data_t data;
-  struct process *receiver;
-  struct process *p;
-
   /*
    * If there are any events in the queue, take the first one and walk
    * through the list of processes to see if the event should be
@@ -258,22 +279,21 @@ do_event(void)
    * call the poll handlers inbetween.
    */
 
-  if(nevents > 0) {
+  struct process_event_item* e = process_get_event();
 
-    /* There are events that we should deliver. */
-    ev = events[fevent].ev;
-
-    data = events[fevent].data;
-    receiver = events[fevent].p;
-
-    /* Since we have seen the new event, we move pointer upwards
-       and decrease the number of events. */
-    fevent = (fevent + 1) % PROCESS_CONF_NUMEVENTS;
-    --nevents;
+  if(e != NULL) {
+    struct process *receiver  = e->p;
+    process_event_t ev        = e->ev;
 
     /* If this is a broadcast event, we deliver it to all events, in
        order of their priority. */
     if(receiver == PROCESS_BROADCAST) {
+        process_data_t data;
+        struct process *p;
+
+        /* There are events that we should deliver. */
+        data = e->data;
+
       for(p = process_list; p != NULL; p = p->next) {
 
         /* If we have been requested to poll a process, we do this in
@@ -293,7 +313,7 @@ do_event(void)
       }
 
       /* Make sure that the process actually is running. */
-      call_process(receiver, ev, data);
+      call_process(receiver, ev, e->data);
     }
   }
 }
