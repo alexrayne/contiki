@@ -324,8 +324,12 @@ CFLAGS += ${addprefix -I,$(SOURCEDIRS) $(CONTIKI)}
 ### Check for a git repo and pass version if found
 ### git.exe in Windows cmd shells may require no stderr redirection
 ifndef RELSTR
+ifneq ($(wildcard ${CONTIKI}/.git/*),)
 RELSTR:=${shell git --git-dir ${CONTIKI}/.git --work-tree ${CONTIKI} describe \
           --tags --always --dirty}
+else
+RELSTR=4.7
+endif
 endif
 
 ifneq ($(RELSTR),)
