@@ -389,6 +389,17 @@ void process_post_synch(struct process *p,
  */
 void process_exit(struct process *p);
 
+/**
+ * \brief Makes status of current process not running, for silent process exiting
+ *
+ *       exiting of process generates events PROCESS_EVENT_EXITED for all
+ *       active processes, and PROCESS_EVENT_EXIT for current process
+ *       such notification can be useless and wasteful. so process_abort can
+ *       mark process alredy stops, to block notification in process_exit
+ * */
+void process_abort(void);
+
+#define PROCESS_ABORT()             process_abort()
 
 /**
  * Get a pointer to the currently running process.
