@@ -69,7 +69,7 @@ schedule_rtimer_isr_safe(struct rtimer *rtimer)
 {
   rtimer_clock_t min;
   if(rtimer) {
-    min = RTIMER_NOW() + RTIMER_MINIMAL_SAFE_SCHEDULE;
+    min = RTIMER_NOW() + RTIMER_GUARD_TIME;
     if(RTIMER_CLOCK_LT(rtimer->time, min)) {
       rtimer_arch_schedule(min);
     } else {

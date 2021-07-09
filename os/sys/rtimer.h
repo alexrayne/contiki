@@ -100,8 +100,18 @@ typedef uint64_t rtimer_clock_t;
 #ifdef RTIMER_CONF_GUARD_TIME
 #define RTIMER_GUARD_TIME RTIMER_CONF_GUARD_TIME
 #else /* RTIMER_CONF_GUARD_TIME */
+
+#if (RTIMER_ARCH_SECOND >> 14) < 2U
+#define RTIMER_GUARD_TIME 2U
+#else
 #define RTIMER_GUARD_TIME (RTIMER_ARCH_SECOND >> 14)
+#endif
+
 #endif /* RTIMER_CONF_GUARD_TIME */
+
+#ifdef RTIMER_CONF_MINIMAL_SAFE_SCHEDULE
+#define RTIMER_MINIMAL_SAFE_SCHEDULE RTIMER_CONF_MINIMAL_SAFE_SCHEDULE
+#endif
 
 /*---------------------------------------------------------------------------*/
 
@@ -116,15 +126,6 @@ typedef uint64_t rtimer_clock_t;
 #define RTIMER_MULTIPLE_ACCESS RTIMER_CONF_MULTIPLE_ACCESS
 #endif
 
-#ifndef RTIMER_CONF_MINIMAL_SAFE_SCHEDULE
-#define RTIMER_MINIMAL_SAFE_SCHEDULE 2U
-#else
-#define RTIMER_MINIMAL_SAFE_SCHEDULE RTIMER_CONF_MINIMAL_SAFE_SCHEDULE
-#endif
-
-#if RTIMER_MINIMAL_SAFE_SCHEDULE < 2U
-#error "RTIMER_GAURD_TIME must be at least 2"
-#endif
 /*---------------------------------------------------------------------------*/
 /**
  * \brief      Initialize the real-time scheduler.
