@@ -90,6 +90,7 @@ struct orchestra_rule default_common = {
   select_packet,
   NULL,
   NULL,
+  NULL,
   "default common",
   ORCHESTRA_COMMON_SHARED_PERIOD,
 };

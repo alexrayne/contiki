@@ -47,6 +47,7 @@
 #include "net/netstack.h"
 #include "sys/energest.h"
 #include "sys/clock.h"
+#include "sys/critical.h"
 #include "sys/rtimer.h"
 #include "sys/cc.h"
 #include "lpm.h"
@@ -126,7 +127,7 @@ static int8_t rssi_last      = RF_CORE_CMD_CCA_REQ_RSSI_UNKNOWN;
 /*---------------------------------------------------------------------------*/
 #if (RF_CORE_RECV_STYLE == RF_CORE_RECV_BY_SYNC)
 // receving packer rfCore entry
-static volatile rfc_dataEntry_t * is_receiving_packet;
+static volatile rfc_dataEntry_t *packet_being_received;
 #endif
 /*---------------------------------------------------------------------------*/
 static int on(void);
@@ -174,8 +175,8 @@ static rfc_propRxOutput_t rx_stats;
  * a 4-byte CRC.
  *
  * In the future we can change this to support transmission of long frames,
- * for example as per .15.4g. the size of the TX and RX buffers would need
- * adjusted accordingly.
+ * for example as per .15.4g, which defines 2047 as the maximum frame size.
+ * The size of the TX and RX buffers would need to be adjusted accordingly.
  */
 #define MAX_PAYLOAD_LEN 125
 /*---------------------------------------------------------------------------*/
@@ -576,10 +577,9 @@ rf_cmd_prop_rx()
   cmd_rx_adv->rxConf.bAppendStatus = RF_CORE_RX_BUF_INCLUDE_CORR;
 
   /*
-   * Set the max Packet length. This is for the payload only, therefore
-   * 2047 - length offset
+   * Set the max Packet length. This is for the payload only.
    */
-  cmd_rx_adv->maxPktLen = DOT_4G_MAX_FRAME_LEN - cmd_rx_adv->lenOffset;
+  cmd_rx_adv->maxPktLen = RADIO_PHY_OVERHEAD + MAX_PAYLOAD_LEN;
 
   rat_sync_op_start();
   ret = rf_core_send_cmd((uint32_t)cmd_rx_adv, &cmd_status);
@@ -615,10 +615,12 @@ init_rx_buffers(void)
     entry->config.type = DATA_ENTRY_TYPE_GEN;
     entry->config.lenSz = DATA_ENTRY_LENSZ_WORD;
     entry->length = RX_BUF_SIZE - 8;
-    entry->pNextEntry = rx_buf[i + 1];
+    if(i == PROP_MODE_RX_BUF_CNT - 1) {
+      entry->pNextEntry = rx_buf[0];
+    } else {
+      entry->pNextEntry = rx_buf[i + 1];
+    }
   }
-
-  ((rfc_dataEntry_t *)rx_buf[PROP_MODE_RX_BUF_CNT - 1])->pNextEntry = rx_buf[0];
 }
 /*---------------------------------------------------------------------------*/
 static int
@@ -634,7 +636,7 @@ rx_on_prop(void)
 
 #if (RF_CORE_RECV_STYLE == RF_CORE_RECV_BY_SYNC)
   /* Make sure the flag is reset */
-  is_receiving_packet = 0;
+  packet_being_received = NULL;
 #endif
 
   /* Put CPE in RX using the currently configured parameters */
@@ -661,7 +663,7 @@ rx_off_prop(void)
 
 #if (RF_CORE_RECV_STYLE == RF_CORE_RECV_BY_SYNC)
   /* Make sure the flag is reset */
-  is_receiving_packet = 0;
+  packet_being_received = NULL;
 #endif
 
   /* Wait for ongoing ACK TX to finish */
@@ -1061,6 +1063,16 @@ release_data_entry(void)
     PRINTF("RX was off, re-enabling rx!\n");
     rx_on_prop();
   }
+  else if(rf_core_rx_is_full) {
+      int_master_status_t interrupt_status;
+      interrupt_status = critical_enter();
+      if(rf_core_rx_is_full) {
+        rf_core_rx_is_full = false;
+        PRINTF("RXQ was full, re-enabling radio!\n");
+        rx_on_prop();
+      }
+      critical_exit(interrupt_status);
+  }
 }
 /*---------------------------------------------------------------------------*/
 static int
@@ -1092,11 +1104,11 @@ read_frame(void *buf, unsigned short buf_len)
   /* wait for entry to become finished */
   rtimer_clock_t t0 = RTIMER_NOW();
   while(entry->status == DATA_ENTRY_STATUS_BUSY
-      && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (RTIMER_SECOND / 50)));
+      && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + RADIO_FRAME_DURATION(MAX_PAYLOAD_LEN)));
 
 #if (RF_CORE_RECV_STYLE == RF_CORE_RECV_BY_SYNC)
   /* Make sure the flag is reset */
-  is_receiving_packet = 0;
+  packet_being_received = NULL;
 #endif
 
   if(entry->status != DATA_ENTRY_STATUS_FINISHED) {
@@ -1237,25 +1249,24 @@ receiving_packet(void)
    * first call. The assumption is that the TSCH code will keep calling us
    * until frame reception has completed, at which point we can clear MDMSOFT.
    */
-  if(is_receiving_packet == NULL) {
+  if(packet_being_received == NULL) {
     /* Look for the modem synchronization word detection interrupt flag.
      * This flag is raised when the synchronization word is received.
      */
     if(HWREG(RFC_DBELL_BASE + RFC_DBELL_O_RFHWIFG) & RFC_DBELL_RFHWIFG_MDMSOFT) {
-      is_receiving_packet = (rfc_dataEntry_t *)rx_data_queue.pCurrEntry;;
+      packet_being_received = (rfc_dataEntry_t *)rx_data_queue.pCurrEntry;
     }
   } else {
     /* After the start of the packet: reset the Rx flag once the channel gets clear */
     //if (channel_clear() != RF_CORE_CCA_BUSY)
-    if (is_receiving_packet->status >= DATA_ENTRY_STATUS_FINISHED)
-    {
-        is_receiving_packet = NULL;
-        /* Clear the modem sync flag */
-        ti_lib_rfc_hw_int_clear(RFC_DBELL_RFHWIFG_MDMSOFT);
+    if(packet_being_received->status >= DATA_ENTRY_STATUS_FINISHED) {
+      /* Clear the modem sync flag */
+      ti_lib_rfc_hw_int_clear(RFC_DBELL_RFHWIFG_MDMSOFT);
+      packet_being_received = NULL;
     }
   }
 
-  return is_receiving_packet != NULL;
+  return packet_being_received != NULL;
 #else
   /*
    * Under CSMA operation, there is no immediately straightforward logic as to
@@ -1263,7 +1274,7 @@ receiving_packet(void)
    *
    *   - We cannot re-use the same logic as above, since CSMA may bail out of
    *     frame TX immediately after a single call this function here. In this
-   *     scenario, is_receiving_packet would remain equal to one and we would
+   *     scenario, packet_being_received would remain equal to one and we would
    *     therefore erroneously signal ongoing RX in subsequent calls to this
    *     function here, even _after_ reception has completed.
    *   - We can neither clear inside read_frame() nor inside the RX frame
@@ -1455,24 +1466,24 @@ on(void)
   if (soft_on_prop() != RF_CORE_CMD_ERROR) {
     rf_status = 1;
     return RF_CORE_CMD_OK;
+  }
+
+    if((rf_core_cmd_status() & RF_CORE_CMDSTA_RESULT_MASK) != RF_CORE_CMDSTA_SCHEDULING_ERR) {
+      PRINTF("on: failed with status=0x%08lx\n", rf_core_cmd_status());
+      return RF_CORE_CMD_ERROR;
     }
-  if ((rf_core_cmd_status()& RF_CORE_CMDSTA_RESULT_MASK) == RF_CORE_CMDSTA_SCHEDULING_ERR){
-      //looks there was alredy pended command of radio, but app expects radio
-      //    is turn on, and ready. So, abort any commans, and retry setup.
 
-      /* Send a CMD_ABORT command to RF Core */
-      if( rf_core_start_cmd(CMDR_DIR_CMD(CMD_ABORT)) == RF_CORE_CMD_ERROR) {
-        PRINTF_FAIL("on: CMD_ABORT status=0x%08lx\n", rf_core_cmd_status());
-        /* Continue nonetheless */
-        return RF_CORE_CMD_ERROR;
-      }
+    /* Looks like a command was alredy pending on radio. */
+    /* Abort any existing commands */
+    if(rf_core_start_cmd(CMDR_DIR_CMD(CMD_ABORT)) == RF_CORE_CMD_ERROR) {
+      PRINTF("on: CMD_ABORT status=0x%08lx\n", rf_core_cmd_status());
+      return RF_CORE_CMD_ERROR;
+    }
 
-      // retry setup online
-      if (soft_on_prop()  != RF_CORE_CMD_ERROR) {
-        rf_status = 1;
-        return RF_CORE_CMD_OK;
-      }
-      PRINTF_FAIL("on: retry with status=0x%08lx\n", rf_core_cmd_status());
+  /* Retry setup */
+  if (soft_on_prop()  != RF_CORE_CMD_ERROR) {
+    rf_status = 1;
+    return RF_CORE_CMD_OK;
   }
 
   return RF_CORE_CMD_ERROR;

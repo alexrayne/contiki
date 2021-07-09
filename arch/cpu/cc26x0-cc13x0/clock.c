@@ -118,7 +118,7 @@ clock_init(void)
 
   /* GPT0 / Timer B: One shot, PWM interrupt enable */
   HWREG(GPT0_BASE + GPT_O_TBMR) =
-        ((TIMER_CFG_B_ONE_SHOT >> 8) & 0xFF) | GPT_TBMR_TBPWMIE;
+    ((TIMER_CFG_B_ONE_SHOT >> 8) & 0xFF) | GPT_TBMR_TBPWMIE;
 
   /* enable sync with radio timer */
   HWREGBITW(AON_RTC_BASE + AON_RTC_O_CTL, AON_RTC_CTL_RTC_UPD_EN_BITN) = 1;
@@ -168,16 +168,7 @@ clock_update(void)
 unsigned long
 clock_seconds(void)
 {
-  uint32_t secs_now;
-  secs_now = ti_lib_aon_rtc_sec_get();
-
-  /*
-  uint32_t secs_now2;
-  while (secs_now2 = ti_lib_aon_rtc_sec_get(), (secs_now2 != secs_now) )
-      secs_now = secs_now2;
-  */
-
-  return (unsigned long)secs_now;
+  return (unsigned long)ti_lib_aon_rtc_sec_get();
 }
 /*---------------------------------------------------------------------------*/
 void

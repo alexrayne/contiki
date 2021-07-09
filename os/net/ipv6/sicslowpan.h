@@ -337,6 +337,7 @@ struct sicslowpan_nh_compressor {
 };
 
 static inline
+CC_DEPRECATED("Use UIPBUF_ATTR_RSSI instead")
 int sicslowpan_get_last_rssi(void)
 {
   extern int sixlowpan_last_rssi;

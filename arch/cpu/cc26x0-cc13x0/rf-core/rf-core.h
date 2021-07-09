@@ -448,8 +448,9 @@ extern uint8_t rf_core_poll_mode;
  */
 uint8_t rf_core_is_accessible(void);
 
+
 /**
- * @brief Block and wait for a Radio op to complete
+ * \brief Get the status of the last issued radio command
  * @return status of a last cmd started by rf_core_start_cmd(...) or
  *      @sa RF_CORE_CMDSTA_xxx codes
  */

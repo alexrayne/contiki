@@ -139,6 +139,7 @@ struct orchestra_rule eb_per_time_source = {
   select_packet,
   NULL,
   NULL,
+  NULL,
   "EB per time source",
   ORCHESTRA_EBSF_PERIOD,
 };

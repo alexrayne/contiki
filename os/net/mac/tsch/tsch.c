@@ -207,6 +207,7 @@ tsch_set_coordinator(bool enable)
 #endif
   if (tsch_current_eb_period <= 0)
   tsch_set_eb_period(TSCH_EB_PERIOD);
+  tsch_roots_set_self_to_root(tsch_is_coordinator ? 1 : 0);
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -487,6 +488,11 @@ eb_input(struct input_packet *current_input)
       }
     }
 #endif /* TSCH_AUTOSELECT_TIME_SOURCE */
+
+    /* If this EB is coming from the root, add it to the root list */
+    if(eb_ies.ie_join_priority == 0) {
+      tsch_roots_add_address((linkaddr_t *)&frame.src_addr);
+    }
 
     /* Did the EB come from our time source? */
     if(ts_addr != NULL && linkaddr_cmp((linkaddr_t *)&frame.src_addr, ts_addr)) {
@@ -853,6 +859,11 @@ tsch_associate(const struct input_packet *input_eb, rtimer_clock_t timestamp)
 
       /* Start sending keep-alives now that tsch_is_associated is set */
       tsch_schedule_keepalive(0);
+
+      /* If this EB is coming from the root, add it to the root list */
+      if(ies.ie_join_priority == 0) {
+        tsch_roots_add_address((linkaddr_t *)&frame.src_addr);
+      }
 
 #ifdef TSCH_CALLBACK_JOINING_NETWORK
       TSCH_CALLBACK_JOINING_NETWORK();
@@ -1337,6 +1348,7 @@ tsch_init(void)
 #endif
 
   tsch_stats_init();
+  tsch_roots_init();
 }
 /*---------------------------------------------------------------------------*/
 /* Function send for TSCH-MAC, puts the packet in packetbuf in the MAC queue */
@@ -1420,7 +1432,7 @@ send_packet(mac_callback_t sent, void *ptr)
           TSCH_LOG_ID_FROM_LINKADDR(nbr_addr), tsch_packet_seqno,
           tsch_queue_packet_count(nbr_addr), TSCH_QUEUE_NUM_PER_NEIGHBOR, 
           tsch_queue_global_packet_count(), QUEUEBUF_NUM);
-      ret = MAC_TX_ERR;
+      ret = MAC_TX_QUEUE_FULL;
     } else {
       p->header_len = hdr_len;
       TSCH_PRINTF8("TSCH: send packet to %x with seqno %u, queue[%u/%u], len %u %u\n",

@@ -134,17 +134,33 @@ add_uc_links(const linkaddr_t *linkaddr)
 }
 /*---------------------------------------------------------------------------*/
 static void
+remove_unicast_link(uint16_t timeslot, uint16_t options)
+{
+  struct tsch_link *l = list_head(sf_unicast->links_list);
+  while(l != NULL) {
+    if(l->timeslot == timeslot
+        && l->channel_offset == local_channel_offset
+        && l->link_options == options) {
+      tsch_schedule_remove_link(sf_unicast, l);
+      break;
+    }
+    l = list_item_next(l);
+  }
+}
+/*---------------------------------------------------------------------------*/
+static void
 remove_uc_links(const linkaddr_t *linkaddr)
 {
   if(linkaddr != NULL) {
     uint16_t timeslot_rx = get_node_pair_timeslot(linkaddr, &linkaddr_node_addr);
     uint16_t timeslot_tx = get_node_pair_timeslot(&linkaddr_node_addr, linkaddr);
 
-    LOG_INFO("remove uc rx:%d tx:%d ch+%d\n", timeslot_rx, timeslot_tx, local_channel_offset);
-    tsch_schedule_remove_link_by_timeslot(sf_unicast,
-                                          timeslot_rx, local_channel_offset);
-    tsch_schedule_remove_link_by_timeslot(sf_unicast,
-                                          timeslot_tx, local_channel_offset);
+    remove_unicast_link(timeslot_rx, LINK_OPTION_RX);
+    remove_unicast_link(timeslot_tx, LINK_OPTION_TX | LINK_OPTION_SHARED);
+
+    /* Packets to this address were marked with this slotframe and neighbor-specific timeslot;
+     * make sure they don't remain stuck in the queues after the link is removed. */
+    tsch_queue_free_packets_to(linkaddr);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -166,6 +182,7 @@ select_packet(uint16_t *slotframe, uint16_t *timeslot, uint16_t *channel_offset)
   /* Select data packets we have a unicast link to */
   const linkaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
   if(packetbuf_attr(PACKETBUF_ATTR_FRAME_TYPE) == FRAME802154_DATAFRAME
+     && !orchestra_is_root_schedule_active(dest)
      && neighbor_has_uc_link(dest)) {
     if(slotframe != NULL) {
       *slotframe = slotframe_handle;
@@ -225,6 +242,7 @@ struct orchestra_rule unicast_per_neighbor_link_based = {
   select_packet,
   child_added,
   child_removed,
+  NULL,
   "unicast per neighbor link based",
   ORCHESTRA_UNICAST_PERIOD,
 };

@@ -105,7 +105,12 @@ enum {
      error will be fatal then as well. */
   MAC_TX_ERR_FATAL,
 
-  /**< This error provided by TSCH slot operation to note security
+  /**< The MAC layer transmission could not be performed because of
+     insufficient queue space, failure to allocate a neighbor,
+     or insufficient packet memory space. The upper layer may try again later. */
+  MAC_TX_QUEUE_FULL,
+
+    /**< This error provided by TSCH slot operation to note security
    *   encription error. */
   MAC_TX_ERR_SEC,
 
